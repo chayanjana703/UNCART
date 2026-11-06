@@ -87,7 +87,7 @@ class Order extends Model
     public function getTrackingTimelineAttribute(): array
     {
         $stages = [
-            'placed' => ['title' => 'Order Placed', 'desc' => 'Order has been received by ShopiCart'],
+            'placed' => ['title' => 'Order Placed', 'desc' => 'Order has been received by UNCART'],
             'confirmed' => ['title' => 'Payment & Order Confirmed', 'desc' => 'Seller verified inventory and payment verified'],
             'packed' => ['title' => 'Packed by Vendor', 'desc' => 'Package has been inspected, boxed and labeled'],
             'shipped' => ['title' => 'Shipped with Carrier', 'desc' => 'In transit with ' . ($this->carrier_name ?: 'Express Courier')],

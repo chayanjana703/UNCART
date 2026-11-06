@@ -14,6 +14,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\StaticPageController;
+use App\Http\Controllers\VendorRegistrationController;
 
 // Vendor Controllers
 use App\Http\Controllers\Vendor\VendorDashboardController;
@@ -35,6 +36,8 @@ use App\Http\Controllers\Admin\AdminCouponController;
 use App\Http\Controllers\Admin\AdminPaymentController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AdminReportController;
+use App\Http\Controllers\Admin\AdminActivityLogController;
+use App\Http\Controllers\Admin\AdminEmailTemplateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,11 +48,19 @@ use App\Http\Controllers\Admin\AdminReportController;
 // 1. Public Storefront Routes
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/shop', [ProductController::class, 'index'])->name('products.index');
+Route::get('/products/live-search', [ProductController::class, 'liveSearch'])->name('products.live-search');
 Route::get('/product/{slug}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/compare', [ProductController::class, 'compare'])->name('products.compare');
+Route::get('/become-a-seller', [VendorRegistrationController::class, 'showLanding'])->name('vendor.become');
+Route::post('/become-a-seller', [VendorRegistrationController::class, 'register'])->name('vendor.become.submit');
+Route::get('/become-a-seller/verify-otp', [VendorRegistrationController::class, 'showVerifyOtp'])->name('vendor.become.otp.show');
+Route::post('/become-a-seller/verify-otp', [VendorRegistrationController::class, 'verifyRegistrationOtp'])->name('vendor.become.otp.verify');
+Route::post('/become-a-seller/resend-otp', [VendorRegistrationController::class, 'resendRegistrationOtp'])->name('vendor.become.otp.resend');
+Route::get('/shop/seller/{slug}', [VendorRegistrationController::class, 'storefront'])->name('vendor.storefront');
 
 // Cart Routes
 Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::get('/cart/drawer-data', [CartController::class, 'getDrawerData'])->name('cart.drawer-data');
 Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
 Route::post('/cart/update', [CartController::class, 'update'])->name('cart.update');
 Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
@@ -76,9 +87,15 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
+Route::get('/register/verify-otp', [AuthController::class, 'showVerifyOtp'])->name('register.otp.show');
+Route::post('/register/verify-otp', [AuthController::class, 'verifyRegistrationOtp'])->name('register.otp.verify');
+Route::post('/register/resend-otp', [AuthController::class, 'resendRegistrationOtp'])->name('register.otp.resend');
 Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
-Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+Route::post('/forgot-password', [AuthController::class, 'sendResetOtp'])->name('password.email');
+Route::post('/forgot-password/resend', [AuthController::class, 'resendResetOtp'])->name('password.resend');
+Route::get('/reset-password/{token?}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 Route::get('/two-factor', [AuthController::class, 'show2FA'])->name('2fa.show');
 Route::post('/two-factor', [AuthController::class, 'verify2FA'])->name('2fa.verify');
 
@@ -107,10 +124,14 @@ Route::middleware('auth')->group(function () {
     // User Profile & Addresses
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::delete('/profile/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
     Route::post('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password');
     Route::post('/profile/2fa', [ProfileController::class, 'toggle2FA'])->name('profile.2fa');
     Route::post('/profile/preferences', [ProfileController::class, 'preferences'])->name('profile.preferences');
     Route::post('/profile/address/store', [ProfileController::class, 'storeAddress'])->name('profile.address.store');
+    Route::match(['put', 'patch', 'post'], '/profile/address/{id}/update', [ProfileController::class, 'updateAddress'])->name('profile.address.update');
+    Route::match(['put', 'patch', 'post'], '/profile/address/{id}', [ProfileController::class, 'updateAddress']);
     Route::delete('/profile/address/{id}', [ProfileController::class, 'deleteAddress'])->name('profile.address.delete');
     Route::post('/profile/address/{id}/default', [ProfileController::class, 'setDefaultAddress'])->name('profile.address.default');
 
@@ -133,7 +154,8 @@ Route::prefix('vendor')->name('vendor.')->middleware(['auth', 'role:vendor,admin
     Route::get('/products/create', [VendorProductController::class, 'create'])->name('products.create');
     Route::post('/products/store', [VendorProductController::class, 'store'])->name('products.store');
     Route::get('/products/{id}/edit', [VendorProductController::class, 'edit'])->name('products.edit');
-    Route::put('/products/{id}/update', [VendorProductController::class, 'update'])->name('products.update');
+    Route::match(['put', 'patch'], '/products/{id}', [VendorProductController::class, 'update']);
+    Route::match(['put', 'patch'], '/products/{id}/update', [VendorProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{id}', [VendorProductController::class, 'destroy'])->name('products.destroy');
     Route::post('/products/{id}/toggle', [VendorProductController::class, 'toggleStatus'])->name('products.toggle');
     Route::post('/products/bulk-upload', [VendorProductController::class, 'bulkUpload'])->name('products.bulk');
@@ -151,7 +173,8 @@ Route::prefix('vendor')->name('vendor.')->middleware(['auth', 'role:vendor,admin
 
     // Shop Settings & KYC
     Route::get('/shop', [VendorShopController::class, 'edit'])->name('shop.edit');
-    Route::post('/shop/update', [VendorShopController::class, 'update'])->name('shop.update');
+    Route::match(['post', 'put', 'patch'], '/shop/update', [VendorShopController::class, 'update'])->name('shop.update');
+    Route::match(['post', 'put', 'patch'], '/shop', [VendorShopController::class, 'update']);
     Route::post('/shop/kyc', [VendorShopController::class, 'submitKyc'])->name('shop.kyc');
     Route::post('/shop/payout', [VendorShopController::class, 'requestPayout'])->name('shop.payout');
 
@@ -169,7 +192,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     // User Management
     Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
     Route::post('/users/store', [AdminUserController::class, 'store'])->name('users.store');
-    Route::put('/users/{id}/update', [AdminUserController::class, 'update'])->name('users.update');
+    Route::match(['put', 'patch'], '/users/{id}', [AdminUserController::class, 'update'])->name('users.update');
+    Route::match(['put', 'patch'], '/users/{id}/update', [AdminUserController::class, 'update']);
     Route::post('/users/{id}/toggle-block', [AdminUserController::class, 'toggleBlock'])->name('users.toggle-block');
     Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->name('users.destroy');
     Route::get('/users/export', [AdminUserController::class, 'exportCsv'])->name('users.export');
@@ -182,6 +206,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
 
     // Product Oversight
     Route::get('/products', [AdminProductController::class, 'index'])->name('products.index');
+    Route::get('/products/create', [AdminProductController::class, 'create'])->name('products.create');
+    Route::post('/products/store', [AdminProductController::class, 'store'])->name('products.store');
+    Route::get('/products/{id}/edit', [AdminProductController::class, 'edit'])->name('products.edit');
+    Route::match(['put', 'patch'], '/products/{id}', [AdminProductController::class, 'update']);
+    Route::match(['put', 'patch'], '/products/{id}/update', [AdminProductController::class, 'update'])->name('products.update');
     Route::post('/products/{id}/status', [AdminProductController::class, 'updateStatus'])->name('products.status');
     Route::post('/products/{id}/featured', [AdminProductController::class, 'toggleFeatured'])->name('products.featured');
     Route::delete('/products/{id}', [AdminProductController::class, 'destroy'])->name('products.destroy');
@@ -189,15 +218,18 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     // Category Management
     Route::get('/categories', [AdminCategoryController::class, 'index'])->name('categories.index');
     Route::post('/categories/store', [AdminCategoryController::class, 'store'])->name('categories.store');
-    Route::put('/categories/{id}/update', [AdminCategoryController::class, 'update'])->name('categories.update');
+    Route::match(['put', 'patch'], '/categories/{id}', [AdminCategoryController::class, 'update'])->name('categories.update');
+    Route::match(['put', 'patch'], '/categories/{id}/update', [AdminCategoryController::class, 'update']);
     Route::delete('/categories/{id}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
 
     // Order Management
     Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/export', [AdminOrderController::class, 'exportCsv'])->name('orders.export');
+    Route::get('/disputes', [AdminOrderController::class, 'disputes'])->name('disputes.index');
+    Route::post('/disputes/{id}/resolve', [AdminOrderController::class, 'resolveDispute'])->name('disputes.resolve');
     Route::get('/orders/{id}', [AdminOrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{id}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status');
     Route::post('/orders/{id}/refund', [AdminOrderController::class, 'processRefund'])->name('orders.refund');
-    Route::get('/orders/export', [AdminOrderController::class, 'exportCsv'])->name('orders.export');
 
     // Reviews Management
     Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
@@ -223,4 +255,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     // Reports
     Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export-sales', [AdminReportController::class, 'exportSales'])->name('reports.export-sales');
+
+    // System Activity Logs
+    Route::get('/activity-logs', [AdminActivityLogController::class, 'index'])->name('activity-logs.index');
+    Route::get('/activity-logs/export', [AdminActivityLogController::class, 'exportCsv'])->name('activity-logs.export');
+
+    // Email Templates Management
+    Route::get('/email-templates', [AdminEmailTemplateController::class, 'index'])->name('email-templates.index');
+    Route::put('/email-templates/{id}', [AdminEmailTemplateController::class, 'update'])->name('email-templates.update');
+    Route::post('/email-templates/{id}/send-test', [AdminEmailTemplateController::class, 'sendTest'])->name('email-templates.send-test');
 });

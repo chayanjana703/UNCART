@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Vendor;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use App\Models\Vendor;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -13,7 +14,15 @@ class VendorAnalyticsController extends Controller
 {
     private function getVendor(): Vendor
     {
-        return Vendor::where('user_id', Auth::id())->firstOrFail();
+        return Vendor::firstOrCreate(
+            ['user_id' => Auth::id()],
+            [
+                'shop_name' => Auth::user()->name . "'s Shop",
+                'shop_slug' => Str::slug(Auth::user()->name . '-' . rand(100, 999)),
+                'status' => 'active',
+                'kyc_status' => 'verified',
+            ]
+        );
     }
 
     public function index()

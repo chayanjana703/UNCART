@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Address;
 use App\Models\ActivityLog;
 
@@ -27,10 +28,32 @@ class ProfileController extends Controller
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
             'bio' => 'nullable|string|max:500',
-            'avatar' => 'nullable|string|url',
+            'avatar' => 'nullable|string|max:1000',
+            'avatar_file' => 'nullable|image|mimes:jpeg,png,jpg,webp,avif,gif|max:5120',
+            'remove_avatar' => 'nullable|boolean',
         ]);
 
-        $user->update($validated);
+        if ($request->boolean('remove_avatar')) {
+            if ($user->avatar && str_starts_with($user->avatar, '/storage/avatars/')) {
+                $oldPath = str_replace('/storage/', '', $user->avatar);
+                Storage::disk('public')->delete($oldPath);
+            }
+            $user->avatar = null;
+        } elseif ($request->hasFile('avatar_file') && $request->file('avatar_file')->isValid()) {
+            if ($user->avatar && str_starts_with($user->avatar, '/storage/avatars/')) {
+                $oldPath = str_replace('/storage/', '', $user->avatar);
+                Storage::disk('public')->delete($oldPath);
+            }
+            $path = $request->file('avatar_file')->store('avatars', 'public');
+            $user->avatar = '/storage/' . $path;
+        } elseif ($request->filled('avatar')) {
+            $user->avatar = $request->input('avatar');
+        }
+
+        $user->name = $validated['name'];
+        $user->phone = $validated['phone'] ?? null;
+        $user->bio = $validated['bio'] ?? null;
+        $user->save();
 
         ActivityLog::create([
             'user_id' => $user->id,
@@ -39,6 +62,73 @@ class ProfileController extends Controller
         ]);
 
         return back()->with('success', 'Your personal profile has been updated.');
+    }
+
+    public function updateAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar_file' => 'required|image|mimes:jpeg,png,jpg,webp,avif,gif|max:5120',
+        ]);
+
+        $user = Auth::user();
+
+        if ($request->hasFile('avatar_file') && $request->file('avatar_file')->isValid()) {
+            if ($user->avatar && str_starts_with($user->avatar, '/storage/avatars/')) {
+                $oldPath = str_replace('/storage/', '', $user->avatar);
+                Storage::disk('public')->delete($oldPath);
+            }
+
+            $path = $request->file('avatar_file')->store('avatars', 'public');
+            $user->avatar = '/storage/' . $path;
+            $user->save();
+
+            ActivityLog::create([
+                'user_id' => $user->id,
+                'action' => 'Avatar Updated',
+                'description' => 'Updated profile picture',
+            ]);
+
+            if ($request->wantsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Profile picture updated successfully!',
+                    'avatar_url' => $user->avatar_url,
+                ]);
+            }
+
+            return back()->with('success', 'Profile picture updated successfully!');
+        }
+
+        return back()->withErrors(['avatar_file' => 'Failed to upload image. Please try again.']);
+    }
+
+    public function deleteAvatar(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->avatar && str_starts_with($user->avatar, '/storage/avatars/')) {
+            $oldPath = str_replace('/storage/', '', $user->avatar);
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        $user->avatar = null;
+        $user->save();
+
+        ActivityLog::create([
+            'user_id' => $user->id,
+            'action' => 'Avatar Removed',
+            'description' => 'Reset profile picture to default',
+        ]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile picture reset to default.',
+                'avatar_url' => $user->avatar_url,
+            ]);
+        }
+
+        return back()->with('success', 'Profile picture reset to default.');
     }
 
     public function changePassword(Request $request)
@@ -78,39 +168,106 @@ class ProfileController extends Controller
     public function storeAddress(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'type' => 'required|in:shipping,billing',
+            'name' => 'nullable|string|max:255',
+            'full_name' => 'nullable|string|max:255',
+            'phone' => 'required|string|max:30',
+            'type' => 'nullable|in:shipping,billing',
             'address_line1' => 'required|string|max:255',
             'address_line2' => 'nullable|string|max:255',
             'city' => 'required|string|max:100',
             'state' => 'required|string|max:100',
             'postal_code' => 'required|string|max:20',
-            'country' => 'required|string|max:100',
+            'country' => 'nullable|string|max:100',
             'is_default' => 'nullable|boolean',
         ]);
 
+        $recipientName = trim($request->input('name') ?: $request->input('full_name', ''));
+        if (empty($recipientName)) {
+            $recipientName = Auth::user()->name;
+        }
+
+        $type = $request->input('type') ?: 'shipping';
+        $country = $request->input('country') ?: 'United States';
         $isDefault = $request->boolean('is_default');
 
         if ($isDefault) {
-            Address::where('user_id', Auth::id())->where('type', $validated['type'])->update(['is_default' => false]);
+            Address::where('user_id', Auth::id())->where('type', $type)->update(['is_default' => false]);
         }
 
         Address::create([
             'user_id' => Auth::id(),
-            'name' => $validated['name'],
+            'name' => $recipientName,
             'phone' => $validated['phone'],
-            'type' => $validated['type'],
+            'type' => $type,
             'address_line1' => $validated['address_line1'],
             'address_line2' => $validated['address_line2'] ?? null,
             'city' => $validated['city'],
             'state' => $validated['state'],
             'postal_code' => $validated['postal_code'],
-            'country' => $validated['country'],
+            'country' => $country,
             'is_default' => $isDefault,
         ]);
 
-        return back()->with('success', 'New address added to your address book.');
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'Address Added',
+            'description' => "Added {$type} address for {$recipientName}",
+        ]);
+
+        return redirect()->route('profile.index', ['tab' => 'addresses'])->with('success', 'New address added to your address book.')->with('tab', 'addresses');
+    }
+
+    public function updateAddress(Request $request, $id)
+    {
+        $address = Address::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+
+        $validated = $request->validate([
+            'name' => 'nullable|string|max:255',
+            'full_name' => 'nullable|string|max:255',
+            'phone' => 'required|string|max:30',
+            'type' => 'nullable|in:shipping,billing',
+            'address_line1' => 'required|string|max:255',
+            'address_line2' => 'nullable|string|max:255',
+            'city' => 'required|string|max:100',
+            'state' => 'required|string|max:100',
+            'postal_code' => 'required|string|max:20',
+            'country' => 'nullable|string|max:100',
+            'is_default' => 'nullable|boolean',
+        ]);
+
+        $recipientName = trim($request->input('name') ?: $request->input('full_name', ''));
+        if (empty($recipientName)) {
+            $recipientName = $address->name ?: Auth::user()->name;
+        }
+
+        $type = $request->input('type') ?: $address->type ?: 'shipping';
+        $country = $request->input('country') ?: $address->country ?: 'United States';
+        $isDefault = $request->boolean('is_default');
+
+        if ($isDefault) {
+            Address::where('user_id', Auth::id())->where('type', $type)->update(['is_default' => false]);
+        }
+
+        $address->update([
+            'name' => $recipientName,
+            'phone' => $validated['phone'],
+            'type' => $type,
+            'address_line1' => $validated['address_line1'],
+            'address_line2' => $validated['address_line2'] ?? null,
+            'city' => $validated['city'],
+            'state' => $validated['state'],
+            'postal_code' => $validated['postal_code'],
+            'country' => $country,
+            'is_default' => $isDefault,
+        ]);
+
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'Address Updated',
+            'description' => "Updated {$type} address for {$recipientName}",
+        ]);
+
+        return redirect()->route('profile.index', ['tab' => 'addresses'])->with('success', 'Address details updated successfully.')->with('tab', 'addresses');
     }
 
     public function deleteAddress($id)
@@ -118,7 +275,7 @@ class ProfileController extends Controller
         $addr = Address::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
         $addr->delete();
 
-        return back()->with('info', 'Address has been deleted.');
+        return redirect()->route('profile.index', ['tab' => 'addresses'])->with('info', 'Address has been deleted.')->with('tab', 'addresses');
     }
 
     public function setDefaultAddress($id)
@@ -127,7 +284,7 @@ class ProfileController extends Controller
         Address::where('user_id', Auth::id())->where('type', $addr->type)->update(['is_default' => false]);
         $addr->update(['is_default' => true]);
 
-        return back()->with('success', 'Default address updated.');
+        return redirect()->route('profile.index', ['tab' => 'addresses'])->with('success', 'Default address updated.')->with('tab', 'addresses');
     }
 
     public function preferences(Request $request)

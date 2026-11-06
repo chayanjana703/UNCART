@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\Notification;
+use App\Models\ActivityLog;
 
 class AdminOrderController extends Controller
 {
@@ -87,6 +88,75 @@ class AdminOrderController extends Controller
         ]);
 
         return back()->with('success', "Refund of $" . number_format($order->total_amount, 2) . " processed successfully.");
+    }
+
+    public function disputes(Request $request)
+    {
+        $query = Order::with(['user', 'items.product'])
+            ->whereNotNull('return_status');
+
+        if ($search = $request->input('q')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('return_reason', 'like', "%{$search}%")
+                  ->orWhereHas('user', function ($uq) use ($search) {
+                      $uq->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        if ($status = $request->input('status')) {
+            $query->where('return_status', $status);
+        }
+
+        $disputes = $query->latest('updated_at')->paginate(15)->withQueryString();
+
+        $stats = [
+            'total' => Order::whereNotNull('return_status')->count(),
+            'requested' => Order::where('return_status', 'requested')->count(),
+            'approved' => Order::where('return_status', 'approved')->count(),
+            'refunded' => Order::where('return_status', 'refunded')->count(),
+            'rejected' => Order::where('return_status', 'rejected')->count(),
+        ];
+
+        return view('admin.orders.disputes', compact('disputes', 'stats'));
+    }
+
+    public function resolveDispute(Request $request, $id)
+    {
+        $order = Order::findOrFail($id);
+
+        $validated = $request->validate([
+            'return_status' => 'required|in:approved,rejected,refunded',
+            'admin_notes' => 'nullable|string|max:500',
+        ]);
+
+        $order->return_status = $validated['return_status'];
+        if ($validated['return_status'] === 'refunded') {
+            $order->payment_status = 'refunded';
+            $order->order_status = 'returned';
+        }
+        if (!empty($validated['admin_notes'])) {
+            $order->notes = ($order->notes ? $order->notes . "\n" : '') . "[Return Resolution: " . now()->format('Y-m-d H:i') . "] " . $validated['admin_notes'];
+        }
+        $order->save();
+
+        Notification::create([
+            'user_id' => $order->user_id,
+            'title' => "Dispute / Return Update for #{$order->order_number}",
+            'message' => "Your return request status has been updated to: " . ucfirst($validated['return_status']),
+            'type' => 'order',
+            'link' => route('orders.show', $order->order_number),
+        ]);
+
+        ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'Return Dispute Resolved',
+            'description' => "Order #{$order->order_number} return marked as {$validated['return_status']}",
+        ]);
+
+        return back()->with('success', "Dispute for Order #{$order->order_number} updated to {$validated['return_status']}.");
     }
 
     public function exportCsv()

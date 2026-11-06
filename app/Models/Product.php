@@ -64,20 +64,60 @@ class Product extends Model
         return 0;
     }
 
+    public static function resolveImageUrl(?string $url): string
+    {
+        if (empty($url)) {
+            return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80';
+        }
+
+        if (str_starts_with($url, 'http://') || str_starts_with($url, 'https://') || str_starts_with($url, 'data:')) {
+            return $url;
+        }
+
+        if (str_starts_with($url, '/storage/') || str_starts_with($url, 'storage/')) {
+            return asset(ltrim($url, '/'));
+        }
+
+        return asset('storage/' . ltrim($url, '/'));
+    }
+
     public function getFeaturedImageAttribute(): string
     {
         if (is_array($this->images) && count($this->images) > 0) {
-            return $this->images[0];
+            return static::resolveImageUrl($this->images[0]);
         }
         return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80';
+    }
+
+    public function getPrimaryImageAttribute(): string
+    {
+        return $this->featured_image;
     }
 
     public function getGalleryImagesAttribute(): array
     {
         if (is_array($this->images) && count($this->images) > 0) {
-            return $this->images;
+            return array_values(array_map([static::class, 'resolveImageUrl'], $this->images));
         }
         return [$this->featured_image];
+    }
+
+    public function getImagesWithUrlsAttribute(): array
+    {
+        if (!is_array($this->images) || count($this->images) === 0) {
+            return [];
+        }
+
+        $list = [];
+        foreach ($this->images as $img) {
+            if (!empty($img)) {
+                $list[] = [
+                    'raw' => $img,
+                    'url' => static::resolveImageUrl($img),
+                ];
+            }
+        }
+        return $list;
     }
 
     public function getInStockAttribute(): bool

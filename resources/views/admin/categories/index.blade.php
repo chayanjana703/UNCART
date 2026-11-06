@@ -94,7 +94,7 @@
             <h2 class="text-lg font-bold text-white mb-1">Create Product Category</h2>
             <p class="text-xs text-slate-400 mb-4">Add a new taxonomy tier for marketplace catalog items.</p>
 
-            <form action="{{ route('admin.categories.store') }}" method="POST" class="space-y-4">
+            <form action="{{ route('admin.categories.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Category Title</label>
@@ -106,25 +106,34 @@
                     <textarea name="description" rows="2" placeholder="Brief description of the collection..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500"></textarea>
                 </div>
 
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-slate-300">Category Cover Picture</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <span class="block text-[11px] text-slate-400 mb-1">From Device</span>
+                            <input type="file" name="image_file" accept="image/*" class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500/10 file:text-amber-400 hover:file:bg-amber-500/20 bg-slate-950 border border-slate-800 rounded-xl">
+                        </div>
+                        <div>
+                            <span class="block text-[11px] text-slate-400 mb-1">Or via Image URL</span>
+                            <input type="url" name="image" placeholder="https://..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:border-amber-500">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Featured Cover Image URL</label>
-                        <input type="url" name="image" placeholder="https://images.unsplash.com/..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Parent Hierarchy (Optional)</label>
+                        <select name="parent_id" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                            <option value="">None (Top-Level)</option>
+                            @foreach($categories as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Sort Priority Order</label>
                         <input type="number" name="sort_order" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono">
                     </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Parent Hierarchy (Optional)</label>
-                    <select name="parent_id" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
-                        <option value="">None (Top-Level Category)</option>
-                        @foreach($categories as $c)
-                            <option value="{{ $c->id }}">{{ $c->name }}</option>
-                        @endforeach
-                    </select>
                 </div>
 
                 <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
@@ -141,7 +150,7 @@
             <h2 class="text-lg font-bold text-white mb-1">Edit Category Details</h2>
             <p class="text-xs text-slate-400 mb-4">Modify category properties, visuals, or sort rank.</p>
 
-            <form :action="'{{ url('admin/categories') }}/' + editingCat.id" method="POST" class="space-y-4">
+            <form :action="'{{ url('admin/categories') }}/' + editingCat.id" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
                 @method('PUT')
                 <div>
@@ -154,15 +163,23 @@
                     <textarea name="description" x-model="editingCat.description" rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500"></textarea>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Featured Cover Image URL</label>
-                        <input type="url" name="image" x-model="editingCat.image" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold text-slate-300">Update Cover Picture</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <span class="block text-[11px] text-slate-400 mb-1">Upload New Picture</span>
+                            <input type="file" name="image_file" accept="image/*" class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500/10 file:text-amber-400 hover:file:bg-amber-500/20 bg-slate-950 border border-slate-800 rounded-xl">
+                        </div>
+                        <div>
+                            <span class="block text-[11px] text-slate-400 mb-1">Or Image URL</span>
+                            <input type="url" name="image" x-model="editingCat.image" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white focus:border-amber-500">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Sort Priority Order</label>
-                        <input type="number" name="sort_order" x-model="editingCat.sort_order" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono">
-                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Sort Priority Order</label>
+                    <input type="number" name="sort_order" x-model="editingCat.sort_order" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono">
                 </div>
 
                 <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">

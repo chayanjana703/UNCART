@@ -15,6 +15,10 @@
             </h1>
             <p class="text-slate-400 text-xs mt-1">Review merchant product listings, approve/reject catalogue items, and spotlight featured goods.</p>
         </div>
+        <a href="{{ route('admin.products.create') }}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-amber-500/20 active:scale-95">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            Add Product
+        </a>
     </div>
 
     <!-- Filters Bar -->
@@ -133,6 +137,10 @@
                                             </button>
                                         </form>
                                     @endif
+
+                                    <a href="{{ route('admin.products.edit', $product->id) }}" class="p-1.5 rounded-lg bg-slate-800 hover:bg-amber-500/20 text-slate-400 hover:text-amber-300 transition" title="Edit Product">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    </a>
 
                                     <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Remove product permanently from store catalog?')" class="inline">
                                         @csrf

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'Admin Console') - ShopiCart Platform</title>
+    <title>@yield('title', 'Admin Console') - UNCART Platform</title>
 
     <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,6 +40,7 @@
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex antialiased font-sans">
+    <x-page-loader />
 
     <!-- Sidebar Navigation -->
     <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between hidden md:flex flex-shrink-0">
@@ -51,7 +52,7 @@
                         A
                     </div>
                     <div>
-                        <div class="font-extrabold text-sm text-white tracking-tight">SHOPI<span class="text-amber-400">ADMIN</span></div>
+                        <div class="font-extrabold text-sm text-white tracking-tight">UNCART<span class="text-amber-400">ADMIN</span></div>
                         <div class="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold">Control Center</div>
                     </div>
                 </a>
@@ -101,6 +102,12 @@
                     <span>All Orders & Refunds</span>
                 </a>
 
+                <a href="{{ route('admin.disputes.index') }}" 
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors {{ request()->routeIs('admin.disputes.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"/></svg>
+                    <span>Disputes & Returns</span>
+                </a>
+
                 <a href="{{ route('admin.reviews.index') }}" 
                    class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors {{ request()->routeIs('admin.reviews.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
@@ -127,7 +134,19 @@
                     <span>Platform Reports</span>
                 </a>
 
-                <div class="pt-3 pb-1 px-3 text-[10px] uppercase tracking-wider font-bold text-slate-400 font-mono">Configuration</div>
+                <div class="pt-3 pb-1 px-3 text-[10px] uppercase tracking-wider font-bold text-slate-400 font-mono">Configuration & System</div>
+
+                <a href="{{ route('admin.email-templates.index') }}" 
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors {{ request()->routeIs('admin.email-templates.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    <span>Email Templates</span>
+                </a>
+
+                <a href="{{ route('admin.activity-logs.index') }}" 
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors {{ request()->routeIs('admin.activity-logs.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>System Activity Logs</span>
+                </a>
 
                 <a href="{{ route('admin.settings.index') }}" 
                    class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors {{ request()->routeIs('admin.settings.*') ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white hover:bg-slate-800' }}">

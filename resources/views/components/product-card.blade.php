@@ -5,11 +5,30 @@
     if (Auth::check()) {
         $inWishlist = \App\Models\Wishlist::where('user_id', Auth::id())->where('product_id', $product->id)->exists();
     }
+    $productJson = [
+        'id' => $product->id,
+        'name' => $product->name,
+        'slug' => $product->slug,
+        'price' => $product->price,
+        'compare_price' => $product->compare_price,
+        'image' => $product->primary_image,
+        'category' => $product->category->name ?? 'Hardware',
+        'vendor' => $product->vendor->shop_name ?? 'UNCART Direct',
+        'badge' => $product->is_featured ? 'Spotlight' : ($product->discount_percent > 0 ? "-{$product->discount_percent}%" : null),
+        'description' => $product->short_description ?? Str::limit($product->description, 160),
+        'rating' => $product->rating,
+        'reviews_count' => $product->reviews_count ?? 12,
+    ];
 @endphp
 
 <div x-data="{
     wishlisted: {{ $inWishlist ? 'true' : 'false' }},
     adding: false,
+    openQuickModal(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.dispatchEvent(new CustomEvent('open-quick-view', { detail: {{ json_encode($productJson) }} }));
+    },
     async toggleWishlist(e) {
         e.preventDefault();
         e.stopPropagation();
@@ -52,123 +71,122 @@
             this.adding = false;
             window.dispatchEvent(new CustomEvent('toast', { detail: { message: data.message, type: 'success' } }));
             window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: data.cart_count } }));
+            window.dispatchEvent(new CustomEvent('open-cart-drawer'));
         } catch (err) {
             this.adding = false;
         }
     }
 }" 
-class="group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-slate-950/40 transition-all duration-300 flex flex-col overflow-hidden">
+class="group relative bg-white rounded-2xl sm:rounded-3xl border border-[#DDE4EC] hover:border-[#F59E0B]/50 shadow-xs hover:shadow-xl hover:shadow-[#1B0E24]/5 transition-all duration-300 flex flex-col h-full overflow-hidden hover:-translate-y-1.5 will-change-transform">
 
-    <!-- Thumbnail Area -->
-    <a href="{{ route('products.show', $product->slug) }}" class="relative aspect-square w-full overflow-hidden bg-slate-100 dark:bg-slate-800/60 block">
-        <img src="{{ $product->featured_image }}" 
-             alt="{{ $product->name }}" 
-             loading="lazy"
-             class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]">
+    <!-- Card Top Actions & Image Container: Fixed uniform box preventing height jump -->
+    <div class="relative w-full h-48 sm:h-52 bg-[#F0F3F7]/60 p-3 sm:p-4 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <a href="{{ route('products.show', $product->slug) }}" class="w-full h-full flex items-center justify-center overflow-hidden">
+            <img src="{{ $product->primary_image }}" 
+                 alt="{{ $product->name }}" 
+                 loading="lazy"
+                 referrerpolicy="no-referrer"
+                 onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80';"
+                 class="max-w-full max-h-full object-contain group-hover:scale-108 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]">
+        </a>
 
-        <!-- Badges -->
-        <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-            @if($product->sale_price && $product->sale_price < $product->price)
-                <span class="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider bg-rose-600 text-white rounded-lg shadow-sm backdrop-blur-sm">
-                    -{{ $product->discount_percentage }}% OFF
+        <!-- Discount Pill Badge (Top Left) -->
+        <div class="absolute top-3 left-3 flex flex-col gap-1 z-10">
+            @if($product->discount_percent > 0)
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#F59E0B] text-[#1B0E24] shadow-sm">
+                    -{{ $product->discount_percent }}%
                 </span>
-            @endif
-            @if($product->is_featured)
-                <span class="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider bg-indigo-600 text-white rounded-lg shadow-sm">
-                    Featured
+            @elseif($product->is_featured)
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#1B0E24] text-white shadow-sm">
+                    Hot
                 </span>
             @endif
         </div>
 
-        <!-- Wishlist Button -->
-        <button @click="toggleWishlist($event)" 
-                type="button"
-                title="Save to Wishlist"
-                class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-center text-slate-400 hover:text-rose-500 shadow-md transition-all duration-200 active:scale-90 z-10"
-                :class="{ 'text-rose-500 fill-rose-500': wishlisted }">
-            <svg class="w-4 h-4 transition-colors" :class="{ 'fill-rose-500 text-rose-500': wishlisted }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-        </button>
+        <!-- Top Right Actions: Wishlist & Compare -->
+        <div class="absolute top-3 right-3 flex flex-col gap-1.5 z-10">
+            <!-- Wishlist Button -->
+            <button @click="toggleWishlist($event)"
+                    class="w-8 h-8 rounded-full bg-white/95 hover:bg-white text-slate-400 hover:text-rose-500 shadow-sm border border-slate-100 flex items-center justify-center transition-all duration-200 active:scale-90"
+                    :class="{ 'text-rose-500 fill-rose-500': wishlisted }"
+                    title="Save to Wishlist">
+                <svg class="w-4 h-4 transition-transform" :class="{ 'scale-125 fill-rose-500 text-rose-500': wishlisted }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+            </button>
 
-        <!-- Quick Add Overlay on Hover -->
-        <div class="absolute inset-x-3 bottom-3 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200 z-10">
-            <button @click="quickAdd($event)" 
+            <!-- Compare Button -->
+            <button @click.prevent.stop="window.dispatchEvent(new CustomEvent('toggle-compare', { detail: { id: {{ $product->id }}, name: '{{ addslashes($product->name) }}', image: '{{ $product->primary_image }}' } }))"
                     type="button"
-                    :disabled="adding || {{ !$product->in_stock ? 'true' : 'false' }}"
-                    class="w-full py-2.5 px-4 bg-slate-900/95 hover:bg-slate-900 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 text-xs font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 backdrop-blur-md active:scale-[0.98] transition-all">
-                <template x-if="!adding">
-                    <span class="flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-                        <span>{{ $product->in_stock ? 'Quick Add' : 'Out of Stock' }}</span>
-                    </span>
-                </template>
-                <template x-if="adding">
-                    <span class="flex items-center gap-1.5">
-                        <svg class="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                        <span>Adding...</span>
-                    </span>
-                </template>
+                    class="w-8 h-8 rounded-full bg-white/95 hover:bg-white text-slate-400 hover:text-[#6B2A88] shadow-sm border border-slate-100 flex items-center justify-center transition-all duration-200 active:scale-90 opacity-0 group-hover:opacity-100"
+                    title="Compare Product">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
             </button>
         </div>
-    </a>
 
-    <!-- Card Content -->
-    <div class="p-4 flex-1 flex flex-col justify-between">
+        <!-- Quick View Hover Floating Pill -->
+        <button @click="openQuickModal($event)" 
+                class="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-200 py-1.5 px-3.5 rounded-full bg-white/95 text-[#1B0E24] text-[11px] font-bold shadow-md hover:bg-[#1B0E24] hover:text-[#F59E0B] flex items-center gap-1.5 z-10 whitespace-nowrap">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            <span>Quick View</span>
+        </button>
+    </div>
+
+    <!-- Product Card Details Area: Even layout alignment -->
+    <div class="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3 bg-white">
+        
         <div>
-            <!-- Category & Vendor -->
-            <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
-                <span class="font-medium tracking-wide">{{ $product->category->name ?? 'General' }}</span>
-                @if($product->vendor)
-                    <span class="flex items-center gap-1 text-[11px] truncate max-w-[120px]" title="{{ $product->vendor->shop_name }}">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        <span class="truncate">{{ $product->vendor->shop_name }}</span>
-                    </span>
-                @endif
+            <!-- Category / Subtitle Spec -->
+            <div class="text-[11px] text-slate-400 font-medium truncate mb-1">
+                {{ $product->category->name ?? 'Curated Electronics' }}
             </div>
 
-            <!-- Title -->
-            <h3 class="font-semibold text-slate-900 dark:text-slate-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2 leading-snug">
+            <!-- Product Title: 2-line max for perfect multi-line balance without misalignment -->
+            <h3 class="text-xs sm:text-sm font-bold text-[#1B0E24] group-hover:text-[#F59E0B] transition-colors line-clamp-2 min-h-[2rem]">
                 <a href="{{ route('products.show', $product->slug) }}">
                     {{ $product->name }}
                 </a>
             </h3>
 
-            <!-- Rating -->
-            <div class="flex items-center gap-1.5 mt-2">
-                <div class="flex items-center text-amber-400 text-xs">
-                    @for($i = 1; $i <= 5; $i++)
-                        @if($i <= round($product->rating_avg))
-                            <span>★</span>
-                        @else
-                            <span class="text-slate-300 dark:text-slate-700">★</span>
-                        @endif
-                    @endfor
-                </div>
-                <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                    ({{ $product->rating_count }})
-                </span>
+            <!-- Rating & Verified Count -->
+            <div class="flex items-center gap-1.5 mt-1.5 text-xs">
+                <div class="flex text-[#F59E0B] text-xs">★★★★★</div>
+                <span class="text-[11px] text-slate-500 font-semibold">{{ number_format($product->rating, 1) }}</span>
+                <span class="text-[10px] text-slate-400">({{ $product->reviews_count ?? 12 }})</span>
             </div>
         </div>
 
-        <!-- Price -->
-        <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-baseline justify-between">
-            <div class="flex items-baseline gap-2">
-                <span class="text-base font-bold text-slate-900 dark:text-white">
-                    ${{ number_format($product->current_price, 2) }}
-                </span>
-                @if($product->sale_price && $product->sale_price < $product->price)
-                    <span class="text-xs text-slate-400 line-through">
-                        ${{ number_format($product->price, 2) }}
-                    </span>
+        <!-- Pricing & Quick Add Button -->
+        <div class="pt-2 border-t border-slate-50 flex items-center justify-between gap-2 mt-auto">
+            <div>
+                <div class="text-sm sm:text-base font-extrabold text-[#1B0E24]">
+                    <span x-text="$store.currency ? $store.currency.format({{ (float)$product->price }}) : '${{ number_format($product->price, 2) }}'">${{ number_format($product->price, 2) }}</span>
+                </div>
+                @if($product->compare_price && $product->compare_price > $product->price)
+                    <div class="text-[11px] text-slate-400 line-through">
+                        <span x-text="$store.currency ? $store.currency.format({{ (float)$product->compare_price }}) : '${{ number_format($product->compare_price, 2) }}'">${{ number_format($product->compare_price, 2) }}</span>
+                    </div>
                 @endif
             </div>
 
-            @if($product->stock_quantity <= 5 && $product->stock_quantity > 0)
-                <span class="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                    Only {{ $product->stock_quantity }} left!
-                </span>
-            @endif
+            <!-- Quick Add to Cart Icon Button -->
+            <button @click="quickAdd($event)"
+                    :disabled="adding"
+                    class="w-9 h-9 rounded-xl bg-[#F0F3F7] hover:bg-[#1B0E24] text-[#1B0E24] hover:text-[#F59E0B] flex items-center justify-center transition-all duration-200 active:scale-95 shadow-xs flex-shrink-0 font-bold"
+                    title="Add to Cart">
+                <template x-if="!adding">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                    </svg>
+                </template>
+                <template x-if="adding">
+                    <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                </template>
+            </button>
         </div>
+
     </div>
+
 </div>

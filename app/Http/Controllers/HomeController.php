@@ -25,7 +25,7 @@ class HomeController extends Controller
             ->where('status', 'approved')
             ->where('is_featured', true)
             ->with(['category', 'vendor'])
-            ->take(8)
+            ->take(20)
             ->get();
 
         $flashSaleProducts = Product::where('is_active', true)
@@ -33,14 +33,14 @@ class HomeController extends Controller
             ->whereNotNull('sale_price')
             ->whereColumn('sale_price', '<', 'price')
             ->with(['category', 'vendor'])
-            ->take(4)
+            ->take(5)
             ->get();
 
         $newArrivals = Product::where('is_active', true)
             ->where('status', 'approved')
             ->with(['category', 'vendor'])
             ->latest()
-            ->take(8)
+            ->take(10)
             ->get();
 
         $topVendors = Vendor::where('status', 'active')
@@ -56,6 +56,12 @@ class HomeController extends Controller
             ->take(6)
             ->get();
 
+        $heroHeadphone = Product::where('slug', 'aether-pro-spatial-wireless-headphones')->first() 
+            ?? $featuredProducts->first();
+
+        $heroSneaker = Product::where('slug', 'apex-carbon-ultra-lightweight-sneakers')->first() 
+            ?? $featuredProducts->skip(1)->first();
+
         return view('pages.home', compact(
             'banners',
             'categories',
@@ -63,7 +69,9 @@ class HomeController extends Controller
             'flashSaleProducts',
             'newArrivals',
             'topVendors',
-            'featuredReviews'
+            'featuredReviews',
+            'heroHeadphone',
+            'heroSneaker'
         ));
     }
 }

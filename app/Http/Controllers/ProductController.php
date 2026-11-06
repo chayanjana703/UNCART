@@ -88,6 +88,56 @@ class ProductController extends Controller
         return view('pages.shop', compact('products', 'categories', 'vendors', 'sort'));
     }
 
+    public function liveSearch(Request $request)
+    {
+        if (str_contains(session()->previousUrl(), 'live-search') || str_contains(session()->previousUrl(), 'drawer-data')) {
+            session()->setPreviousUrl(route('home'));
+        }
+
+        $query = trim($request->input('q', ''));
+        if (strlen($query) < 2) {
+            return response()->json(['results' => [], 'total' => 0]);
+        }
+
+        $products = Product::where('is_active', true)
+            ->where('status', 'approved')
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhere('short_description', 'like', "%{$query}%")
+                  ->orWhere('sku', 'like', "%{$query}%");
+            })
+            ->with('category')
+            ->take(6)
+            ->get();
+
+        $total = Product::where('is_active', true)
+            ->where('status', 'approved')
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhere('short_description', 'like', "%{$query}%")
+                  ->orWhere('sku', 'like', "%{$query}%");
+            })
+            ->count();
+
+        $results = $products->map(function ($p) {
+            return [
+                'id' => $p->id,
+                'name' => $p->name,
+                'slug' => $p->slug,
+                'image' => $p->primary_image,
+                'price' => '$' . number_format($p->price, 2),
+                'compare_price' => ($p->compare_price && $p->compare_price > $p->price) ? '$' . number_format($p->compare_price, 2) : null,
+                'category' => $p->category->name ?? 'General',
+                'rating' => number_format($p->rating, 1),
+            ];
+        });
+
+        return response()->json([
+            'results' => $results,
+            'total' => $total,
+        ]);
+    }
+
     public function show($slug)
     {
         $product = Product::where('slug', $slug)

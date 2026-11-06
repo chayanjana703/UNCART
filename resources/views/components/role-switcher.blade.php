@@ -6,44 +6,44 @@
          x-transition:leave="transition ease-in duration-150"
          x-transition:leave-start="opacity-100 scale-100"
          x-transition:leave-end="opacity-0 scale-95"
-         class="bg-slate-900/90 text-white backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl p-2.5 flex items-center gap-2">
+         class="bg-[#1B0E24]/95 text-white backdrop-blur-xl border border-[#38144A] rounded-2xl shadow-2xl p-2.5 flex items-center gap-2">
         
-        <div class="flex items-center gap-2 px-2 border-r border-slate-700/70 text-xs font-semibold tracking-wider uppercase text-slate-400">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <div class="flex items-center gap-2 px-2 border-r border-[#38144A] text-xs font-semibold tracking-wider uppercase text-slate-300">
+            <span class="w-2 h-2 rounded-full bg-[#F59E0B] animate-pulse"></span>
             Demo Switcher
         </div>
 
         <div class="flex items-center gap-1.5 text-xs">
             <!-- Customer -->
             <a href="{{ route('quick.login', 'customer') }}" 
-               class="px-2.5 py-1.5 rounded-xl font-medium transition-all duration-150 flex items-center gap-1.5 active:scale-95 {{ Auth::check() && Auth::user()->isCustomer() ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800/80 text-slate-300 hover:bg-slate-750 hover:text-white' }}">
+               class="px-2.5 py-1.5 rounded-xl font-bold transition-all duration-150 flex items-center gap-1.5 active:scale-95 {{ Auth::check() && Auth::user()->isCustomer() ? 'bg-[#F59E0B] text-[#1B0E24] shadow-md shadow-[#F59E0B]/25' : 'bg-[#271435] text-slate-300 hover:bg-[#341B46] hover:text-white' }}">
                 <span>👤</span>
                 <span class="hidden sm:inline">Customer</span>
             </a>
 
             <!-- Vendor -->
             <a href="{{ route('quick.login', 'vendor') }}" 
-               class="px-2.5 py-1.5 rounded-xl font-medium transition-all duration-150 flex items-center gap-1.5 active:scale-95 {{ Auth::check() && Auth::user()->isVendor() ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800/80 text-slate-300 hover:bg-slate-750 hover:text-white' }}">
+               class="px-2.5 py-1.5 rounded-xl font-bold transition-all duration-150 flex items-center gap-1.5 active:scale-95 {{ Auth::check() && Auth::user()->isVendor() ? 'bg-[#F59E0B] text-[#1B0E24] shadow-md shadow-[#F59E0B]/25' : 'bg-[#271435] text-slate-300 hover:bg-[#341B46] hover:text-white' }}">
                 <span>🏪</span>
                 <span class="hidden sm:inline">Seller Portal</span>
             </a>
 
             <!-- Admin -->
             <a href="{{ route('quick.login', 'admin') }}" 
-               class="px-2.5 py-1.5 rounded-xl font-medium transition-all duration-150 flex items-center gap-1.5 active:scale-95 {{ Auth::check() && Auth::user()->isAdmin() ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800/80 text-slate-300 hover:bg-slate-750 hover:text-white' }}">
+               class="px-2.5 py-1.5 rounded-xl font-bold transition-all duration-150 flex items-center gap-1.5 active:scale-95 {{ Auth::check() && Auth::user()->isAdmin() ? 'bg-[#F59E0B] text-[#1B0E24] shadow-md shadow-[#F59E0B]/25' : 'bg-[#271435] text-slate-300 hover:bg-[#341B46] hover:text-white' }}">
                 <span>🛡️</span>
                 <span class="hidden sm:inline">Admin</span>
             </a>
 
             <!-- Guest -->
             <a href="{{ route('quick.login', 'guest') }}" 
-               class="px-2 py-1.5 rounded-xl font-medium transition-all duration-150 flex items-center gap-1 active:scale-95 {{ !Auth::check() ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800/80 text-slate-300 hover:bg-slate-750 hover:text-white' }}">
+               class="px-2 py-1.5 rounded-xl font-bold transition-all duration-150 flex items-center gap-1 active:scale-95 {{ !Auth::check() ? 'bg-[#F59E0B] text-[#1B0E24] shadow-md shadow-[#F59E0B]/25' : 'bg-[#271435] text-slate-300 hover:bg-[#341B46] hover:text-white' }}">
                 <span>👁️</span>
                 <span class="hidden sm:inline">Guest</span>
             </a>
         </div>
 
-        <button @click="open = false" title="Minimize switcher" class="ml-1 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
+        <button @click="open = false" title="Minimize switcher" class="ml-1 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-[#271435] transition-colors">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
     </div>

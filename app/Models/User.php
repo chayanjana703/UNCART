@@ -13,6 +13,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'email_verified_at',
         'phone',
         'password',
         'role',
@@ -54,6 +55,28 @@ class User extends Authenticatable
     public function isCustomer(): bool
     {
         return $this->role === 'customer';
+    }
+
+    public static function resolveAvatarUrl(?string $avatar): string
+    {
+        if (empty($avatar)) {
+            return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80';
+        }
+
+        if (str_starts_with($avatar, 'http://') || str_starts_with($avatar, 'https://') || str_starts_with($avatar, 'data:')) {
+            return $avatar;
+        }
+
+        if (str_starts_with($avatar, '/storage/') || str_starts_with($avatar, 'storage/')) {
+            return asset(ltrim($avatar, '/'));
+        }
+
+        return asset('storage/' . ltrim($avatar, '/'));
+    }
+
+    public function getAvatarUrlAttribute(): string
+    {
+        return static::resolveAvatarUrl($this->avatar);
     }
 
     public function vendor()
@@ -99,5 +122,10 @@ class User extends Authenticatable
     public function activityLogs()
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\ResetPasswordNotification($token));
     }
 }

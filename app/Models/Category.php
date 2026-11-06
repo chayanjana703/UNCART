@@ -28,6 +28,17 @@ class Category extends Model
         ];
     }
 
+    public function getImageAttribute($value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+        return asset('storage/' . ltrim($value, '/'));
+    }
+
     public function parent()
     {
         return $this->belongsTo(Category::class, 'parent_id');

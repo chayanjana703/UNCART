@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', 'Vendor Portal') - ShopiCart Seller</title>
+    <title>@yield('title', 'Vendor Portal') - UNCART Seller</title>
 
     <!-- Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,6 +40,7 @@
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex antialiased font-sans">
+    <x-page-loader />
 
     <!-- Sidebar Navigation -->
     <aside class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between hidden md:flex flex-shrink-0">
@@ -51,7 +52,7 @@
                         S
                     </div>
                     <div>
-                        <div class="font-extrabold text-sm text-white tracking-tight">SHOPI<span class="text-indigo-400">CART</span></div>
+                        <div class="font-extrabold text-sm text-white tracking-tight">UNCART<span class="text-indigo-400">SELLER</span></div>
                         <div class="text-[10px] text-slate-400 uppercase font-mono tracking-widest font-bold">Seller Portal</div>
                     </div>
                 </a>

@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\ActivityLog;
+use App\Notifications\AccountCreatedNotification;
 
 class AdminUserController extends Controller
 {
@@ -57,6 +58,12 @@ class AdminUserController extends Controller
             'description' => "Created {$validated['role']} account for {$validated['email']}",
         ]);
 
+        try {
+            $user->notify(new AccountCreatedNotification($user));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Could not dispatch admin created user welcome email to {$user->email}: " . $e->getMessage());
+        }
+
         return back()->with('success', "User '{$user->name}' created successfully.");
     }
 
@@ -84,6 +91,12 @@ class AdminUserController extends Controller
         }
 
         $user->update($data);
+
+        ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'User Updated',
+            'description' => "User {$user->email} was updated by admin",
+        ]);
 
         return back()->with('success', "User {$user->name} updated successfully.");
     }

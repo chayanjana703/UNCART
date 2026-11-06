@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Vendor;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Models\Vendor;
 use App\Models\Product;
@@ -69,19 +70,33 @@ class VendorProductController extends Controller
             'sku' => 'required|string|max:50|unique:products,sku',
             'short_description' => 'nullable|string|max:500',
             'description' => 'required|string',
-            'images' => 'nullable|string', // Comma separated URLs or JSON
+            'image_files' => 'nullable|array',
+            'image_files.*' => 'nullable|image|mimes:jpeg,png,jpg,webp,avif,gif|max:10240',
+            'images' => 'nullable|string', // Optional fallback URLs
             'spec_keys' => 'nullable|array',
             'spec_values' => 'nullable|array',
             'is_active' => 'nullable|boolean',
             'is_featured' => 'nullable|boolean',
         ]);
 
-        // Process images
+        // Process device uploaded image files
         $images = [];
-        if (!empty($validated['images'])) {
-            $images = array_map('trim', explode("\n", str_replace(["\r", ","], "\n", $validated['images'])));
-            $images = array_values(array_filter($images));
+        if ($request->hasFile('image_files')) {
+            foreach ($request->file('image_files') as $file) {
+                if ($file && $file->isValid()) {
+                    $path = $file->store('products', 'public');
+                    $images[] = $path;
+                }
+            }
         }
+
+        // Process fallback / optional URL images
+        if (!empty($validated['images'])) {
+            $urlImages = array_map('trim', explode("\n", str_replace(["\r", ","], "\n", $validated['images'])));
+            $urlImages = array_values(array_filter($urlImages));
+            $images = array_merge($images, $urlImages);
+        }
+
         if (empty($images)) {
             $images = ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80'];
         }
@@ -145,6 +160,9 @@ class VendorProductController extends Controller
             'sku' => "required|string|max:50|unique:products,sku,{$product->id}",
             'short_description' => 'nullable|string|max:500',
             'description' => 'required|string',
+            'image_files' => 'nullable|array',
+            'image_files.*' => 'nullable|image|mimes:jpeg,png,jpg,webp,avif,gif|max:10240',
+            'existing_images' => 'nullable|array',
             'images' => 'nullable|string',
             'spec_keys' => 'nullable|array',
             'spec_values' => 'nullable|array',
@@ -152,12 +170,43 @@ class VendorProductController extends Controller
             'is_featured' => 'nullable|boolean',
         ]);
 
+        // Process retained existing images
         $images = [];
-        if (!empty($validated['images'])) {
-            $images = array_map('trim', explode("\n", str_replace(["\r", ","], "\n", $validated['images'])));
-            $images = array_values(array_filter($images));
+        if ($request->has('existing_images')) {
+            $images = array_values(array_filter($request->input('existing_images', [])));
         } else {
-            $images = $product->images;
+            $images = is_array($product->images) ? $product->images : [];
+        }
+
+        // Process new uploaded files from user's device
+        if ($request->hasFile('image_files')) {
+            foreach ($request->file('image_files') as $file) {
+                if ($file && $file->isValid()) {
+                    $path = $file->store('products', 'public');
+                    $images[] = $path;
+                }
+            }
+        }
+
+        // Process any supplemental URLs entered
+        if (!empty($validated['images'])) {
+            $urlImages = array_map('trim', explode("\n", str_replace(["\r", ","], "\n", $validated['images'])));
+            $urlImages = array_values(array_filter($urlImages));
+            $images = array_merge($images, $urlImages);
+        }
+
+        // Clean up removed local files from storage
+        if (is_array($product->images)) {
+            $removed = array_diff($product->images, $images);
+            foreach ($removed as $oldImg) {
+                if (!empty($oldImg) && !str_starts_with($oldImg, 'http') && Storage::disk('public')->exists($oldImg)) {
+                    Storage::disk('public')->delete($oldImg);
+                }
+            }
+        }
+
+        if (empty($images)) {
+            $images = ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80'];
         }
 
         $specs = [];
