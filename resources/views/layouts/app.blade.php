@@ -270,6 +270,9 @@
     <!-- Floating Compare Tray -->
     <x-compare-tray />
 
+    <!-- AI Shopping & Comparison Concierge Assistant -->
+    <x-ai-assistant />
+
     <!-- Global Quick View Pop-Up Modal Window (Matching Clean Aesthetic) -->
     <div x-show="quickViewOpen" 
          x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-300"

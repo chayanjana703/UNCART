@@ -15,6 +15,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\InquiryController;
 use App\Http\Controllers\StaticPageController;
 use App\Http\Controllers\VendorRegistrationController;
+use App\Http\Controllers\AiAssistantController;
 
 // Vendor Controllers
 use App\Http\Controllers\Vendor\VendorDashboardController;
@@ -264,4 +265,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->grou
     Route::get('/email-templates', [AdminEmailTemplateController::class, 'index'])->name('email-templates.index');
     Route::put('/email-templates/{id}', [AdminEmailTemplateController::class, 'update'])->name('email-templates.update');
     Route::post('/email-templates/{id}/send-test', [AdminEmailTemplateController::class, 'sendTest'])->name('email-templates.send-test');
+});
+
+// 6. AI Shopping Concierge Routes
+Route::prefix('api/ai')->name('ai.')->group(function () {
+    Route::post('/chat', [AiAssistantController::class, 'chat'])->name('chat');
+    Route::post('/clear', [AiAssistantController::class, 'clear'])->name('clear');
+    Route::post('/handoff', [AiAssistantController::class, 'handoff'])->name('handoff');
+    Route::get('/suggestions', [AiAssistantController::class, 'suggestions'])->name('suggestions');
 });

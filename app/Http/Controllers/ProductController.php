@@ -143,7 +143,7 @@ class ProductController extends Controller
         $product = Product::where('slug', $slug)
             ->where('is_active', true)
             ->where('status', 'approved')
-            ->with(['category', 'vendor.user', 'reviews.user'])
+            ->with(['category', 'vendor.user', 'reviews.user', 'reviews.votes'])
             ->firstOrFail();
 
         // Increment views

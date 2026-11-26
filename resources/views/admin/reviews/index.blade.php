@@ -3,7 +3,7 @@
 @section('title', 'Review Moderation & Trust')
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ photoModal: false, activeModalPhoto: '', modalBuyer: '' }">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -64,6 +64,8 @@
                                 </div>
                                 <span class="text-xs font-bold text-slate-200">{{ $review->title }}</span>
                                 <span class="text-[10px] text-slate-500 font-mono">• {{ $review->created_at->diffForHumans() }}</span>
+                                <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" title="Helpful votes">👍 {{ $review->helpful_votes ?? 0 }}</span>
+                                <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20" title="Unhelpful votes">👎 {{ $review->unhelpful_votes ?? 0 }}</span>
                             </div>
                         </div>
                     </div>
@@ -126,13 +128,27 @@
                 </div>
 
                 <!-- Photos attached -->
-                @if(!empty($review->photos) && is_array($review->photos))
-                    <div class="mt-3 flex items-center gap-2">
-                        @foreach($review->photos as $photo)
-                            <a href="{{ $photo }}" target="_blank">
-                                <img src="{{ $photo }}" alt="Evidence" class="w-12 h-12 rounded-lg object-cover border border-slate-700 hover:opacity-80 transition">
-                            </a>
-                        @endforeach
+                @if(!empty($review->photos) && count($review->photos) > 0)
+                    <div class="mt-3.5 pt-3 border-t border-slate-800/80">
+                        <div class="text-[11px] font-semibold text-slate-400 mb-2 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            Photographic Evidence / Buyer Uploads ({{ count($review->photos) }})
+                        </div>
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            @foreach($review->photos as $photo)
+                                <button type="button" 
+                                        @click="activeModalPhoto = '{{ $photo }}'; modalBuyer = '{{ addslashes($review->user->name ?? 'Buyer') }}'; photoModal = true"
+                                        class="group relative w-14 h-14 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 hover:border-amber-400 hover:shadow-lg transition cursor-zoom-in"
+                                        title="Click to inspect photo in high resolution">
+                                    <img src="{{ $photo }}" alt="Evidence" class="w-full h-full object-cover group-hover:scale-110 transition duration-300">
+                                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
+                                        </svg>
+                                    </div>
+                                </button>
+                            @endforeach
+                        </div>
                     </div>
                 @endif
             </div>
@@ -145,6 +161,31 @@
 
     <div class="pt-2">
         {{ $reviews->links() }}
+    </div>
+
+    <!-- Admin Photo Inspection Lightbox Modal -->
+    <div x-show="photoModal" 
+         x-transition.opacity 
+         class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6" 
+         style="display: none;"
+         @keydown.escape.window="photoModal = false">
+        <div @click.away="photoModal = false" class="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
+            <div class="w-full flex items-center justify-between pb-3 text-white">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400">Moderating Upload from:</span>
+                    <span class="text-xs font-bold text-amber-400" x-text="modalBuyer"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a :href="activeModalPhoto" target="_blank" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition">
+                        Open Original ↗
+                    </a>
+                    <button type="button" @click="photoModal = false" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                        &times;
+                    </button>
+                </div>
+            </div>
+            <img :src="activeModalPhoto" alt="Moderation review photo" class="max-h-[80vh] max-w-full rounded-2xl object-contain shadow-2xl border border-slate-800">
+        </div>
     </div>
 </div>
 @endsection
